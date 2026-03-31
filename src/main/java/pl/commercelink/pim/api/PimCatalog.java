@@ -3,6 +3,7 @@ package pl.commercelink.pim.api;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public interface PimCatalog {
 
@@ -37,4 +38,10 @@ public interface PimCatalog {
         }
         return Optional.empty();
     }
+
+    void submit(PimEntryRequest request);
+
+    void onEntryAdded(Consumer<PIMEntryAddedEvent> listener);
+
+    void onEntryDeleted(Consumer<PIMEntryDeletedEvent> listener);
 }
