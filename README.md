@@ -9,7 +9,7 @@ The core `PimCatalog` interface provides methods for looking up PIM entries by i
 - `PimEntry` — product information record (identifiers, brand, name, category, subcategory, approval status)
 - `PimIdentifier` — product identifier with type (GTIN or MPN)
 - `PimEntryRequest` — request to add a product to the PIM queue
-- `PIMEntryAddedEvent` / `PIMEntryDeletedEvent` — SQS events for PIM index changes
+- `PIMEntryAddedEvent` / `PIMEntryDeletedEvent` — events for PIM index changes
 
 ## Usage
 
