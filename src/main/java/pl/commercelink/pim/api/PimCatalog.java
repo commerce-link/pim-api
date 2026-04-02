@@ -41,7 +41,11 @@ public interface PimCatalog {
 
     void submit(PimEntryRequest request);
 
+    void refresh();
+
     void onEntryAdded(Consumer<PIMEntryAddedEvent> listener);
 
     void onEntryDeleted(Consumer<PIMEntryDeletedEvent> listener);
+
+    default void dispatch(Object event) {}
 }
