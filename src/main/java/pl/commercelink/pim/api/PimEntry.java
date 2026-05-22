@@ -11,7 +11,9 @@ public record PimEntry(
         String name,
         ProductCategory category,
         String subcategory,
-        boolean approved
+        boolean approved,
+        Integer netWeightInGrams,
+        Integer grossWeightInGrams
 ) {
 
     public List<String> gtins() {
