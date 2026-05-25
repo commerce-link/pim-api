@@ -48,4 +48,12 @@ public interface PimCatalog {
     void onEntryDeleted(Consumer<PIMEntryDeletedEvent> listener);
 
     default void dispatch(Object event) {}
+
+    default String unifyBrand(String raw) {
+        return raw;
+    }
+
+    default int brandStrength(String brand) {
+        return 1;
+    }
 }
