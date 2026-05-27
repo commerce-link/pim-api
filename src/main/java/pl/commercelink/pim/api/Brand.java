@@ -7,7 +7,9 @@ import java.util.stream.Stream;
 public record Brand(String name, List<String> aliases) {
 
     public Brand {
-        aliases = aliases == null ? List.of() : List.copyOf(aliases);
+        aliases = aliases == null
+                ? List.of()
+                : aliases.stream().filter(Objects::nonNull).toList();
     }
 
     public boolean matches(String input) {
