@@ -49,11 +49,7 @@ public interface PimCatalog {
 
     default void dispatch(Object event) {}
 
-    default String unifyBrand(String raw) {
-        return raw;
-    }
-
-    default int brandStrength(String brand) {
-        return 1;
+    default List<Brand> allBrands() {
+        return List.of();
     }
 }
