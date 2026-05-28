@@ -48,4 +48,8 @@ public interface PimCatalog {
     void onEntryDeleted(Consumer<PIMEntryDeletedEvent> listener);
 
     default void dispatch(Object event) {}
+
+    default List<Brand> allBrands() {
+        return List.of();
+    }
 }
