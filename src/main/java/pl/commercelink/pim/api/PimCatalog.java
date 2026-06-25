@@ -52,4 +52,8 @@ public interface PimCatalog {
     default List<Brand> allBrands() {
         return List.of();
     }
+
+    default List<Category> allCategories() {
+        return List.of();
+    }
 }
