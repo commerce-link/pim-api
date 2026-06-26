@@ -1,6 +1,6 @@
 package pl.commercelink.pim.api;
 
-import pl.commercelink.taxonomy.ProductCategory;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
@@ -9,7 +9,7 @@ public record PimEntry(
         List<PimIdentifier> identifiers,
         String brand,
         String name,
-        ProductCategory category,
+        @JsonProperty("category") String categoryKey,
         String subcategory,
         boolean approved,
         Integer netWeightInGrams,
