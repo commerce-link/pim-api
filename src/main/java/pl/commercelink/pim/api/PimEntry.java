@@ -1,7 +1,5 @@
 package pl.commercelink.pim.api;
 
-import pl.commercelink.taxonomy.ProductCategory;
-
 import java.util.List;
 
 public record PimEntry(
@@ -9,7 +7,7 @@ public record PimEntry(
         List<PimIdentifier> identifiers,
         String brand,
         String name,
-        ProductCategory category,
+        String category,
         String subcategory,
         boolean approved,
         Integer netWeightInGrams,
