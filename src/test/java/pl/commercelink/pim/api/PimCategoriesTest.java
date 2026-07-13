@@ -9,13 +9,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PimCategoriesTest {
 
     private final PimCategories categories = new PimCategories(List.of(
-            new PimCategory("100", null, "Komputery", "Computers"),
-            new PimCategory("200", null, "Dom", "Home"),
-            new PimCategory("110", "100", "Podzespoły", "Components"),
-            new PimCategory("111", "110", "Procesory", "Processors"),
-            new PimCategory("112", "110", "Karty graficzne", "Graphics Cards"),
-            new PimCategory("120", "100", "Laptopy", "Laptops"),
-            new PimCategory("210", "200", "Meble", "Furniture")
+            new PimCategory("100", null, "Komputery", "pl"),
+            new PimCategory("200", null, "Dom", "pl"),
+            new PimCategory("110", "100", "Podzespoły", "pl"),
+            new PimCategory("111", "110", "Procesory", "pl"),
+            new PimCategory("112", "110", "Karty graficzne", "pl"),
+            new PimCategory("120", "100", "Laptopy", "pl"),
+            new PimCategory("210", "200", "Meble", "pl")
     ));
 
     @Test
