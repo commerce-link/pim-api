@@ -56,4 +56,8 @@ public interface PimCatalog {
     default List<PimCategory> allCategories() {
         return List.of();
     }
+
+    default void submitCategoryMatch(CategoryMatchRequest request) {}
+
+    default void onCategoryMatched(Consumer<CategoryMatchedEvent> listener) {}
 }
