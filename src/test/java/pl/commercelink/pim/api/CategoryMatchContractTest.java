@@ -29,7 +29,7 @@ class CategoryMatchContractTest {
     @Test
     void categoryMatchedEventSurvivesJsonRoundTrip() throws Exception {
         // given
-        CategoryMatchedEvent event = new CategoryMatchedEvent("5901234567890", "MFN-1", "CPU", "301", "Procesory", 0.87, "mock");
+        CategoryMatchedEvent event = new CategoryMatchedEvent("5901234567890", "MFN-1", "CPU", "301", 0.87, "mock");
 
         // when
         CategoryMatchedEvent result = objectMapper.readValue(objectMapper.writeValueAsString(event), CategoryMatchedEvent.class);
