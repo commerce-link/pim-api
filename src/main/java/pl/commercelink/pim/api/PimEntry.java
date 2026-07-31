@@ -11,8 +11,16 @@ public record PimEntry(
         String subcategory,
         boolean approved,
         Integer netWeightInGrams,
-        Integer grossWeightInGrams
+        Integer grossWeightInGrams,
+        String categoryId
 ) {
+
+    public PimEntry(String pimId, List<PimIdentifier> identifiers, String brand, String name,
+                    String category, String subcategory, boolean approved,
+                    Integer netWeightInGrams, Integer grossWeightInGrams) {
+        this(pimId, identifiers, brand, name, category, subcategory, approved,
+                netWeightInGrams, grossWeightInGrams, null);
+    }
 
     public List<String> gtins() {
         return identifiers.stream()
