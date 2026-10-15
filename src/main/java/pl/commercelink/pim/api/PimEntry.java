@@ -32,15 +32,19 @@ public record PimEntry(
     }
 
     public List<String> gtins() {
-        return identifiers.stream()
-                .filter(i -> i.type() == PimIdentifierType.GTIN)
-                .map(PimIdentifier::value)
-                .toList();
+        return valuesOf(PimIdentifierType.GTIN);
     }
 
     public List<String> mpns() {
+        return valuesOf(PimIdentifierType.MPN);
+    }
+
+    private List<String> valuesOf(PimIdentifierType type) {
+        if (identifiers == null) {
+            return List.of();
+        }
         return identifiers.stream()
-                .filter(i -> i.type() == PimIdentifierType.MPN)
+                .filter(i -> i != null && i.type() == type)
                 .map(PimIdentifier::value)
                 .toList();
     }
@@ -67,7 +71,7 @@ public record PimEntry(
         if (identifiers == null) {
             return Optional.empty();
         }
-        List<PimIdentifier> ofType = identifiers.stream().filter(i -> i.type() == type).toList();
+        List<PimIdentifier> ofType = identifiers.stream().filter(i -> i != null && i.type() == type).toList();
         return ofType.stream().filter(PimIdentifier::primary).findFirst()
                 .or(() -> ofType.stream().findFirst())
                 .map(PimIdentifier::value);

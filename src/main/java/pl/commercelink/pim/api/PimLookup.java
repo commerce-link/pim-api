@@ -24,13 +24,13 @@ public interface PimLookup {
                 return result;
             }
         }
-        for (String gtin : gtins) {
+        for (String gtin : gtins == null ? List.<String>of() : gtins) {
             Optional<PimEntry> result = findByGtin(gtin);
             if (result.isPresent()) {
                 return result;
             }
         }
-        for (String mpn : mpns) {
+        for (String mpn : mpns == null ? List.<String>of() : mpns) {
             Optional<PimEntry> result = findByMpn(mpn);
             if (result.isPresent()) {
                 return result;

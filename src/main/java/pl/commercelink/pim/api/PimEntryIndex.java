@@ -2,6 +2,7 @@ package pl.commercelink.pim.api;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +12,8 @@ import java.util.function.UnaryOperator;
 /**
  * Immutable lookup structure over a PIM index snapshot. Global entries form one scope, each store's entries
  * another; a store's view searches its own scope first, then the global one. Within a scope a shared identifier
- * resolves to the later entry.
+ * resolves to the later entry. In a store's view a global entry sharing any GTIN/MPN with the store's own entries
+ * is shadowed: lookups by that identifier resolve to the own entry and {@code findAll()} leaves the global one out.
  */
 public final class PimEntryIndex {
 
@@ -26,7 +28,7 @@ public final class PimEntryIndex {
         this.gtinKey = gtinKey;
         this.mpnKey = mpnKey;
         for (PimEntry entry : entries) {
-            if (entry.pimId() == null) {
+            if (entry == null || entry.pimId() == null) {
                 continue;
             }
             byPimId.put(entry.pimId(), entry);
@@ -74,6 +76,9 @@ public final class PimEntryIndex {
                 return;
             }
             for (PimIdentifier id : entry.identifiers()) {
+                if (id == null || id.type() == null) {
+                    continue;
+                }
                 boolean gtin = id.type() == PimIdentifierType.GTIN;
                 String key = key(gtin ? gtinKey : mpnKey, id.value());
                 if (key == null) {
@@ -95,11 +100,71 @@ public final class PimEntryIndex {
 
         @Override
         public List<PimEntry> findAll() {
-            List<PimEntry> all = new ArrayList<>(global.entries);
-            if (own != null) {
-                all.addAll(own.entries);
+            if (own == null) {
+                return new ArrayList<>(global.entries);
+            }
+            // own entries first: callers that group by identifier (first match takes it) must hit the store's entry
+            List<PimEntry> all = new ArrayList<>(own.entries);
+            for (PimEntry entry : global.entries) {
+                if (!shadowed(entry)) {
+                    all.add(entry);
+                }
             }
             return all;
+        }
+
+        private boolean shadowed(PimEntry entry) {
+            if (entry.identifiers() == null) {
+                return false;
+            }
+            for (PimIdentifier id : entry.identifiers()) {
+                if (id == null || id.type() == null) {
+                    continue;
+                }
+                boolean gtin = id.type() == PimIdentifierType.GTIN;
+                String key = key(gtin ? gtinKey : mpnKey, id.value());
+                if (key != null && (gtin ? own.byGtin : own.byMpn).containsKey(key)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public Optional<PimEntry> findByPimIdOrGtinsOrMpns(String pimId, Collection<String> gtins, Collection<String> mpns) {
+            if (own == null) {
+                return PimLookup.super.findByPimIdOrGtinsOrMpns(pimId, gtins, mpns);
+            }
+            Collection<String> gtinValues = gtins == null ? Collections.emptyList() : gtins;
+            Collection<String> mpnValues = mpns == null ? Collections.emptyList() : mpns;
+            PimEntry byId = pimId == null || pimId.isBlank() ? null : byPimId.get(pimId);
+            if (byId != null && storeId.equals(byId.ownerStoreId())) {
+                return Optional.of(byId);
+            }
+            Optional<PimEntry> ownHit = firstHit(own, gtinValues, mpnValues);
+            if (ownHit.isPresent()) {
+                return ownHit;
+            }
+            if (byId != null && byId.global()) {
+                return Optional.of(byId);
+            }
+            return firstHit(global, gtinValues, mpnValues);
+        }
+
+        private Optional<PimEntry> firstHit(Scope scope, Collection<String> gtins, Collection<String> mpns) {
+            for (String gtin : gtins) {
+                String key = key(gtinKey, gtin);
+                if (key != null && scope.byGtin.containsKey(key)) {
+                    return Optional.of(scope.byGtin.get(key));
+                }
+            }
+            for (String mpn : mpns) {
+                String key = key(mpnKey, mpn);
+                if (key != null && scope.byMpn.containsKey(key)) {
+                    return Optional.of(scope.byMpn.get(key));
+                }
+            }
+            return Optional.empty();
         }
 
         @Override
