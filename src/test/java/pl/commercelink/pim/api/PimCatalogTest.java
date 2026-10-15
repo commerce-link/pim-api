@@ -17,6 +17,13 @@ class PimCatalogTest {
         assertThat(catalog.allCategories()).isEmpty();
     }
 
+    @Test
+    void defaultStoreViewIsTheGlobalCatalog() {
+        PimCatalog catalog = new MinimalPimCatalog();
+
+        assertThat(catalog.forStore("s1")).isSameAs(catalog);
+    }
+
     private static class MinimalPimCatalog implements PimCatalog {
 
         @Override
