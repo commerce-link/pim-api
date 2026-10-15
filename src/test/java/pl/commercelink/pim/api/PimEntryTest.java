@@ -76,4 +76,54 @@ class PimEntryTest {
 
         assertThat(entry.categoryId()).isNull();
     }
+
+    @Test
+    void primaryGtinIsTheFlaggedOne() {
+        PimEntry entry = entry(List.of(
+                new PimIdentifier("1", PimIdentifierType.GTIN),
+                new PimIdentifier("2", PimIdentifierType.GTIN, true),
+                new PimIdentifier("M1", PimIdentifierType.MPN)), null);
+        assertThat(entry.primaryGtin()).contains("2");
+        assertThat(entry.primaryMpn()).contains("M1");
+    }
+
+    @Test
+    void primaryFallsBackToTheFirstOfItsTypeWhenNothingIsFlagged() {
+        PimEntry entry = entry(List.of(
+                new PimIdentifier("M1", PimIdentifierType.MPN),
+                new PimIdentifier("1", PimIdentifierType.GTIN),
+                new PimIdentifier("2", PimIdentifierType.GTIN)), null);
+        assertThat(entry.primaryGtin()).contains("1");
+        assertThat(entry.primaryMpn()).contains("M1");
+    }
+
+    @Test
+    void primaryIsEmptyWhenTheTypeIsMissing() {
+        PimEntry entry = entry(List.of(new PimIdentifier("1", PimIdentifierType.GTIN)), null);
+        assertThat(entry.primaryMpn()).isEmpty();
+    }
+
+    @Test
+    void globalEntryIsVisibleToEveryStoreAndStoreEntryOnlyToItsOwner() {
+        PimEntry global = entry(List.of(), null);
+        PimEntry owned = entry(List.of(), "s1");
+        assertThat(global.global()).isTrue();
+        assertThat(global.visibleTo("s1")).isTrue();
+        assertThat(global.visibleTo(null)).isTrue();
+        assertThat(owned.global()).isFalse();
+        assertThat(owned.visibleTo("s1")).isTrue();
+        assertThat(owned.visibleTo("s2")).isFalse();
+        assertThat(owned.visibleTo(null)).isFalse();
+    }
+
+    @Test
+    void oldConstructorsGiveAGlobalEntry() {
+        PimEntry entry = new PimEntry("p", List.of(), "b", "n", "c", "s", true, 1, 2);
+        assertThat(entry.ownerStoreId()).isNull();
+        assertThat(new PimEntry("p", List.of(), "b", "n", "c", "s", true, 1, 2, "cid").ownerStoreId()).isNull();
+    }
+
+    private static PimEntry entry(List<PimIdentifier> ids, String owner) {
+        return new PimEntry("p", ids, "b", "n", "c", "s", true, null, null, null, owner);
+    }
 }
