@@ -11,9 +11,11 @@ import java.util.function.UnaryOperator;
 
 /**
  * Immutable lookup structure over a PIM index snapshot. Global entries form one scope, each store's entries
- * another; a store's view searches its own scope first, then the global one. Within a scope a shared identifier
- * resolves to the later entry. In a store's view a global entry sharing any GTIN/MPN with the store's own entries
- * is shadowed: lookups by that identifier resolve to the own entry and {@code findAll()} leaves the global one out.
+ * another; a store's view searches its own scope first, by any identifier, then the global one (GTIN before MPN
+ * within each scope). Within a scope a shared identifier resolves to the later entry. In a store's view a global
+ * entry sharing any GTIN/MPN with the store's own entries is shadowed: lookups by that identifier resolve to the
+ * own entry, {@code findAll()} leaves the global one out, and a composite lookup carrying its pimId resolves to
+ * the shadowing entry. {@code findByPimId} still returns a visible entry by its own id.
  */
 public final class PimEntryIndex {
 
@@ -141,14 +143,33 @@ public final class PimEntryIndex {
             if (byId != null && storeId.equals(byId.ownerStoreId())) {
                 return Optional.of(byId);
             }
+            if (byId != null && byId.global()) {
+                // a global pimId yields only to the own entry shadowing that very entry: an own entry matching some
+                // other code of the key must not pull a second inventory group onto itself (one pimId, two products)
+                return Optional.of(shadowing(byId).orElse(byId));
+            }
             Optional<PimEntry> ownHit = firstHit(own, gtinValues, mpnValues);
             if (ownHit.isPresent()) {
                 return ownHit;
             }
-            if (byId != null && byId.global()) {
-                return Optional.of(byId);
-            }
             return firstHit(global, gtinValues, mpnValues);
+        }
+
+        private Optional<PimEntry> shadowing(PimEntry globalEntry) {
+            if (globalEntry.identifiers() == null) {
+                return Optional.empty();
+            }
+            return firstHit(own, valuesOf(globalEntry, PimIdentifierType.GTIN), valuesOf(globalEntry, PimIdentifierType.MPN));
+        }
+
+        private List<String> valuesOf(PimEntry entry, PimIdentifierType type) {
+            List<String> values = new ArrayList<>();
+            for (PimIdentifier id : entry.identifiers()) {
+                if (id != null && id.type() == type) {
+                    values.add(id.value());
+                }
+            }
+            return values;
         }
 
         private Optional<PimEntry> firstHit(Scope scope, Collection<String> gtins, Collection<String> mpns) {
@@ -187,7 +208,16 @@ public final class PimEntryIndex {
 
         @Override
         public Optional<PimEntry> findByGtinOrMpn(String gtin, String mpn) {
-            return findByGtin(gtin).or(() -> findByMpn(mpn));
+            // own entries by either code first, then global ones: the order of the composite lookup and of findAll
+            List<String> gtins = Collections.singletonList(gtin);
+            List<String> mpns = Collections.singletonList(mpn);
+            if (own != null) {
+                Optional<PimEntry> ownHit = firstHit(own, gtins, mpns);
+                if (ownHit.isPresent()) {
+                    return ownHit;
+                }
+            }
+            return firstHit(global, gtins, mpns);
         }
 
         private Optional<PimEntry> find(String key, boolean gtin) {

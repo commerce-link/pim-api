@@ -4,7 +4,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-/** Product lookups within one scope: the global catalog or a store's view (its own entries first, then global). */
+/**
+ * Product lookups within one scope: the global catalog or a store's view. A store's view checks the store's own
+ * entries first, by any of the given codes, and only then global ones; within a scope GTIN beats MPN.
+ * See {@link PimEntryIndex} for shadowing.
+ */
 public interface PimLookup {
 
     List<PimEntry> findAll();

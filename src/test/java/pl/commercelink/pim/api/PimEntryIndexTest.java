@@ -103,11 +103,40 @@ class PimEntryIndexTest {
     }
 
     @Test
-    void ownMpnLosesToGlobalGtinInGtinOrMpnLookup() {
+    void ownMpnBeatsGlobalGtinInGtinOrMpnLookupLikeInTheCompositeLookup() {
         PimEntry ownMpn = entry("s1-7", "777", "M-1", "s1");
         PimEntryIndex idx = new PimEntryIndex(List.of(global, ownMpn), TRIM, TRIM);
+        PimLookup s1 = idx.forStore("s1");
 
-        assertThat(idx.forStore("s1").findByGtinOrMpn("590", "M-1")).contains(global);
+        assertThat(s1.findByGtinOrMpn("590", "M-1")).contains(ownMpn);
+        assertThat(s1.findByPimIdOrGtinsOrMpns(null, List.of("590"), List.of("M-1"))).contains(ownMpn);
+        assertThat(s1.findAll()).containsExactly(ownMpn);
+        assertThat(idx.forStore("s2").findByGtinOrMpn("590", "M-1")).contains(global);
+        assertThat(idx.global().findByGtinOrMpn("590", "M-1")).contains(global);
+    }
+
+    @Test
+    void gtinStillBeatsMpnWithinOneScope() {
+        PimEntry byGtin = entry("g5", "500", "M-50", null);
+        PimEntry byMpn = entry("g6", "600", "M-60", null);
+        PimEntryIndex idx = new PimEntryIndex(List.of(byGtin, byMpn), TRIM, TRIM);
+
+        assertThat(idx.forStore("s1").findByGtinOrMpn("500", "M-60")).contains(byGtin);
+        assertThat(idx.global().findByGtinOrMpn("500", "M-60")).contains(byGtin);
+    }
+
+    @Test
+    void globalPimIdOfAKeyYieldsOnlyToTheOwnEntryShadowingThatEntry() {
+        // two global groups; the store entry shares the first group's GTIN and, by bad feed data, a code of the
+        // second key: only the first group may resolve to the store entry, or one pimId would stand for two products
+        PimEntry first = entry("g7", "701", "M-71", null);
+        PimEntry second = entry("g8", "702", "M-72", null);
+        PimEntry own = entry("s1-8", "701", "OWN-8", "s1");
+        PimLookup s1 = new PimEntryIndex(List.of(first, second, own), TRIM, TRIM).forStore("s1");
+
+        assertThat(s1.findByPimIdOrGtinsOrMpns("g7", List.of("701"), List.of("M-71"))).contains(own);
+        assertThat(s1.findByPimIdOrGtinsOrMpns("g8", List.of("702"), List.of("OWN-8"))).contains(second);
+        assertThat(s1.findByPimIdOrGtinsOrMpns(null, List.of("702"), List.of("OWN-8"))).contains(own);
     }
 
     @Test
