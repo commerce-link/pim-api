@@ -15,7 +15,9 @@ import java.util.function.UnaryOperator;
  * within each scope). Within a scope a shared identifier resolves to the later entry. In a store's view a global
  * entry sharing any GTIN/MPN with the store's own entries is shadowed: lookups by that identifier resolve to the
  * own entry, {@code findAll()} leaves the global one out, and a composite lookup carrying its pimId resolves to
- * the shadowing entry. {@code findByPimId} still returns a visible entry by its own id.
+ * the shadowing entry. When several own entries shadow one global entry, the composite lookup takes the first one
+ * found by the global entry's own identifiers (GTINs, then MPNs, in its order), not by the key's codes.
+ * {@code findByPimId} still returns a visible entry by its own id.
  */
 public final class PimEntryIndex {
 
