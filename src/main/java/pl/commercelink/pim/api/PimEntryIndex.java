@@ -53,7 +53,7 @@ public final class PimEntryIndex {
     /** @throws IllegalArgumentException when {@code storeId} is null or blank; global reads use {@link #global()} */
     public PimView forStore(String storeId) {
         if (storeId == null || storeId.isBlank()) {
-            throw new IllegalArgumentException("storeId is required for a store's view; use global() for global entries");
+            throw new IllegalArgumentException("storeId is required for a store's view; global entries come from global() (PimCatalog.withGlobalData())");
         }
         return new View(storeId, stores.get(storeId));
     }
