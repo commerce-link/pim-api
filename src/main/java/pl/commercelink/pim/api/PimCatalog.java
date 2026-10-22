@@ -1,43 +1,24 @@
 package pl.commercelink.pim.api;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
+/**
+ * Entry point to a PIM service. It holds no lookups itself: every read picks its scope first, through
+ * {@link #withGlobalData()} or {@link #withStoreData(String)}, and then works on the returned {@link PimView}.
+ * Views are cheap snapshots of the current index, so take a fresh one per operation rather than keeping it.
+ */
 public interface PimCatalog {
 
-    List<PimEntry> findAll();
+    /** Global entries only: what every store sees, without any store's own entries. */
+    PimView withGlobalData();
 
-    Optional<PimEntry> findByPimId(String pimId);
-
-    Optional<PimEntry> findByGtin(String gtin);
-
-    Optional<PimEntry> findByMpn(String mpn);
-
-    Optional<PimEntry> findByGtinOrMpn(String gtin, String mpn);
-
-    default Optional<PimEntry> findByPimIdOrGtinsOrMpns(String pimId, Collection<String> gtins, Collection<String> mpns) {
-        if (pimId != null && !pimId.isBlank()) {
-            Optional<PimEntry> result = findByPimId(pimId);
-            if (result.isPresent()) {
-                return result;
-            }
-        }
-        for (String gtin : gtins) {
-            Optional<PimEntry> result = findByGtin(gtin);
-            if (result.isPresent()) {
-                return result;
-            }
-        }
-        for (String mpn : mpns) {
-            Optional<PimEntry> result = findByMpn(mpn);
-            if (result.isPresent()) {
-                return result;
-            }
-        }
-        return Optional.empty();
-    }
+    /**
+     * The given store's view: its own entries first, then the global ones it does not shadow.
+     *
+     * @throws IllegalArgumentException when {@code storeId} is null or blank; global reads use {@link #withGlobalData()}
+     */
+    PimView withStoreData(String storeId);
 
     void submit(PimEntryRequest request);
 

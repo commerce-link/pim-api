@@ -3,9 +3,6 @@ package pl.commercelink.pim.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,11 +39,8 @@ class CategoryMatchContractTest {
     void categoryMatchMethodsHaveNoopDefaults() {
         // given
         PimCatalog catalog = new PimCatalog() {
-            @Override public List<PimEntry> findAll() { return List.of(); }
-            @Override public Optional<PimEntry> findByPimId(String pimId) { return Optional.empty(); }
-            @Override public Optional<PimEntry> findByGtin(String gtin) { return Optional.empty(); }
-            @Override public Optional<PimEntry> findByMpn(String mpn) { return Optional.empty(); }
-            @Override public Optional<PimEntry> findByGtinOrMpn(String gtin, String mpn) { return Optional.empty(); }
+            @Override public PimView withGlobalData() { return PimEntryIndex.empty().global(); }
+            @Override public PimView withStoreData(String storeId) { return PimEntryIndex.empty().forStore(storeId); }
             @Override public void submit(PimEntryRequest request) {}
             @Override public void refresh() {}
             @Override public void onEntryAdded(Consumer<PIMEntryAddedEvent> listener) {}
