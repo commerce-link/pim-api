@@ -3,12 +3,22 @@ package pl.commercelink.pim.api;
 import java.util.List;
 import java.util.function.Consumer;
 
-public interface PimCatalog extends PimLookup {
+/**
+ * Entry point to a PIM service. It holds no lookups itself: every read picks its scope first, through
+ * {@link #withGlobalData()} or {@link #withStoreData(String)}, and then works on the returned {@link PimView}.
+ * Views are cheap snapshots of the current index, so take a fresh one per operation rather than keeping it.
+ */
+public interface PimCatalog {
 
-    /** Lookups of this catalog cover global entries only; a store's view adds that store's own entries first. */
-    default PimLookup forStore(String storeId) {
-        return this;
-    }
+    /** Global entries only: what every store sees, without any store's own entries. */
+    PimView withGlobalData();
+
+    /**
+     * The given store's view: its own entries first, then the global ones it does not shadow.
+     *
+     * @throws IllegalArgumentException when {@code storeId} is null or blank; global reads use {@link #withGlobalData()}
+     */
+    PimView withStoreData(String storeId);
 
     void submit(PimEntryRequest request);
 

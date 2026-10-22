@@ -26,7 +26,7 @@ public final class PimEntryIndex {
     private final Map<String, PimEntry> byPimId = new HashMap<>();
     private final Scope global = new Scope();
     private final Map<String, Scope> stores = new HashMap<>();
-    private final PimLookup globalView;
+    private final PimView globalView;
 
     public PimEntryIndex(Collection<PimEntry> entries, UnaryOperator<String> gtinKey, UnaryOperator<String> mpnKey) {
         this.gtinKey = gtinKey;
@@ -46,13 +46,14 @@ public final class PimEntryIndex {
         return new PimEntryIndex(List.of(), UnaryOperator.identity(), UnaryOperator.identity());
     }
 
-    public PimLookup global() {
+    public PimView global() {
         return globalView;
     }
 
-    public PimLookup forStore(String storeId) {
+    /** @throws IllegalArgumentException when {@code storeId} is null or blank; global reads use {@link #global()} */
+    public PimView forStore(String storeId) {
         if (storeId == null || storeId.isBlank()) {
-            return globalView;
+            throw new IllegalArgumentException("storeId is required for a store's view; use global() for global entries");
         }
         return new View(storeId, stores.get(storeId));
     }
@@ -93,7 +94,7 @@ public final class PimEntryIndex {
         }
     }
 
-    private final class View implements PimLookup {
+    private final class View implements PimView {
         private final String storeId;
         private final Scope own;
 
@@ -137,7 +138,7 @@ public final class PimEntryIndex {
         @Override
         public Optional<PimEntry> findByPimIdOrGtinsOrMpns(String pimId, Collection<String> gtins, Collection<String> mpns) {
             if (own == null) {
-                return PimLookup.super.findByPimIdOrGtinsOrMpns(pimId, gtins, mpns);
+                return PimView.super.findByPimIdOrGtinsOrMpns(pimId, gtins, mpns);
             }
             Collection<String> gtinValues = gtins == null ? Collections.emptyList() : gtins;
             Collection<String> mpnValues = mpns == null ? Collections.emptyList() : mpns;

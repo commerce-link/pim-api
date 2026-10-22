@@ -2,8 +2,6 @@ package pl.commercelink.pim.api;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,37 +16,23 @@ class PimCatalogTest {
     }
 
     @Test
-    void defaultStoreViewIsTheGlobalCatalog() {
-        PimCatalog catalog = new MinimalPimCatalog();
-
-        assertThat(catalog.forStore("s1")).isSameAs(catalog);
+    void catalogHasNoLookupsOfItsOwnSoEveryReadPicksAScope() {
+        assertThat(PimView.class).isInterface();
+        assertThat(PimView.class.isAssignableFrom(PimCatalog.class)).isFalse();
     }
 
     private static class MinimalPimCatalog implements PimCatalog {
 
+        private final PimEntryIndex index = PimEntryIndex.empty();
+
         @Override
-        public List<PimEntry> findAll() {
-            return List.of();
+        public PimView withGlobalData() {
+            return index.global();
         }
 
         @Override
-        public Optional<PimEntry> findByPimId(String pimId) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PimEntry> findByGtin(String gtin) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PimEntry> findByMpn(String mpn) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<PimEntry> findByGtinOrMpn(String gtin, String mpn) {
-            return Optional.empty();
+        public PimView withStoreData(String storeId) {
+            return index.forStore(storeId);
         }
 
         @Override
