@@ -263,4 +263,19 @@ class PimEntryIndexTest {
         assertThat(idx.forStore("s1").findAll()).containsExactly(clone);
         assertThat(idx.forStore("s2").findByGtin("590")).contains(global);
     }
+
+    @Test
+    void storeViewListsOnlyItsOwnClones() {
+        PimEntry clone = clone("c1", "590", "M-1", "s1", "g1");
+        PimEntryIndex idx = new PimEntryIndex(List.of(global, clone, onlyInS1, ownedByS2), TRIM, TRIM);
+        assertThat(idx.forStore("s1").findOwnClones()).containsExactly(clone);
+        assertThat(idx.forStore("s2").findOwnClones()).isEmpty();
+        assertThat(idx.forStore("unknown").findOwnClones()).isEmpty();
+    }
+
+    @Test
+    void globalViewListsNoClones() {
+        PimEntryIndex idx = new PimEntryIndex(List.of(global, clone("c1", "590", "M-1", "s1", "g1")), TRIM, TRIM);
+        assertThat(idx.global().findOwnClones()).isEmpty();
+    }
 }

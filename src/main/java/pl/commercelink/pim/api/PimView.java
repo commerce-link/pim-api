@@ -28,6 +28,11 @@ public interface PimView {
         return Optional.empty();
     }
 
+    /** The store's own entries that are clones (clonedFromPimId set); empty for the global view. */
+    default List<PimEntry> findOwnClones() {
+        return List.of();
+    }
+
     Optional<PimEntry> findByGtinOrMpn(String gtin, String mpn);
 
     /**

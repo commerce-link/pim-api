@@ -212,6 +212,11 @@ public final class PimEntryIndex {
         }
 
         @Override
+        public List<PimEntry> findOwnClones() {
+            return own == null ? List.of() : List.copyOf(own.byClonedFrom.values());
+        }
+
+        @Override
         public Optional<PimEntry> findByGtin(String gtin) {
             return find(key(gtinKey, gtin), true);
         }
