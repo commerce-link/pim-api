@@ -218,4 +218,49 @@ class PimEntryIndexTest {
         assertThat(noIds.gtins()).isEmpty();
         assertThat(noIds.mpns()).isEmpty();
     }
+
+    private static PimEntry clone(String pimId, String gtin, String mpn, String owner, String source) {
+        return new PimEntry(pimId, List.of(new PimIdentifier(gtin, PimIdentifierType.GTIN),
+                new PimIdentifier(mpn, PimIdentifierType.MPN)), "b", "n", "c", "s", true, null, null, null, owner, source);
+    }
+
+    @Test
+    void storeViewFindsTheCloneOfASource() {
+        PimEntry clone = clone("c1", "590", "M-1", "s1", "g1");
+        PimEntryIndex idx = new PimEntryIndex(List.of(global, clone), TRIM, TRIM);
+        assertThat(idx.forStore("s1").findCloneOf("g1")).contains(clone);
+        assertThat(idx.forStore("s1").findCloneOf("other")).isEmpty();
+        assertThat(idx.forStore("s1").findCloneOf(" ")).isEmpty();
+        assertThat(idx.forStore("s1").findCloneOf(null)).isEmpty();
+    }
+
+    @Test
+    void globalViewFindsNoClone() {
+        PimEntryIndex idx = new PimEntryIndex(List.of(global, clone("c1", "590", "M-1", "s1", "g1")), TRIM, TRIM);
+        assertThat(idx.global().findCloneOf("g1")).isEmpty();
+    }
+
+    @Test
+    void otherStoreViewFindsNoClone() {
+        PimEntryIndex idx = new PimEntryIndex(List.of(global, clone("c1", "590", "M-1", "s1", "g1")), TRIM, TRIM);
+        assertThat(idx.forStore("s2").findCloneOf("g1")).isEmpty();
+        assertThat(idx.forStore("unknown").findCloneOf("g1")).isEmpty();
+    }
+
+    @Test
+    void cloneWithChangedCodesIsStillFoundBySource() {
+        PimEntry clone = clone("c1", "999", "M-99", "s1", "g1");
+        PimEntryIndex idx = new PimEntryIndex(List.of(global, clone), TRIM, TRIM);
+        assertThat(idx.forStore("s1").findCloneOf("g1")).contains(clone);
+        assertThat(idx.forStore("s1").findByGtin("590")).contains(global);
+    }
+
+    @Test
+    void storeViewShadowsTheSourceWithItsCloneByCode() {
+        PimEntry clone = clone("c1", "590", "M-1", "s1", "g1");
+        PimEntryIndex idx = new PimEntryIndex(List.of(global, clone), TRIM, TRIM);
+        assertThat(idx.forStore("s1").findByGtin("590")).contains(clone);
+        assertThat(idx.forStore("s1").findAll()).containsExactly(clone);
+        assertThat(idx.forStore("s2").findByGtin("590")).contains(global);
+    }
 }

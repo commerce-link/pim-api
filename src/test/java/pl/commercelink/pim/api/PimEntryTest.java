@@ -126,4 +126,18 @@ class PimEntryTest {
     private static PimEntry entry(List<PimIdentifier> ids, String owner) {
         return new PimEntry("p", ids, "b", "n", "c", "s", true, null, null, null, owner);
     }
+
+    @Test
+    void elevenArgConstructorGivesNoSource() {
+        PimEntry entry = new PimEntry("p", List.of(), "b", "n", "c", "s", true, null, null, "cid", "s1");
+        assertThat(entry.clonedFromPimId()).isNull();
+        assertThat(entry.ownerStoreId()).isEqualTo("s1");
+    }
+
+    @Test
+    void cloneKeepsItsSource() {
+        PimEntry clone = new PimEntry("p2", List.of(), "b", "n", "c", "s", true, null, null, "cid", "s1", "p1");
+        assertThat(clone.clonedFromPimId()).isEqualTo("p1");
+        assertThat(clone.global()).isFalse();
+    }
 }

@@ -74,9 +74,13 @@ public final class PimEntryIndex {
         private final List<PimEntry> entries = new ArrayList<>();
         private final Map<String, PimEntry> byGtin = new HashMap<>();
         private final Map<String, PimEntry> byMpn = new HashMap<>();
+        private final Map<String, PimEntry> byClonedFrom = new HashMap<>();
 
         void add(PimEntry entry) {
             entries.add(entry);
+            if (entry.clonedFromPimId() != null && !entry.clonedFromPimId().isBlank()) {
+                byClonedFrom.put(entry.clonedFromPimId(), entry);
+            }
             if (entry.identifiers() == null) {
                 return;
             }
@@ -197,6 +201,14 @@ public final class PimEntryIndex {
                 return Optional.empty();
             }
             return Optional.ofNullable(byPimId.get(pimId)).filter(e -> e.visibleTo(storeId));
+        }
+
+        @Override
+        public Optional<PimEntry> findCloneOf(String sourcePimId) {
+            if (own == null || sourcePimId == null || sourcePimId.isBlank()) {
+                return Optional.empty();
+            }
+            return Optional.ofNullable(own.byClonedFrom.get(sourcePimId));
         }
 
         @Override

@@ -20,6 +20,14 @@ public interface PimView {
 
     Optional<PimEntry> findByMpn(String mpn);
 
+    /**
+     * The store's own entry cloned from the global entry {@code sourcePimId}, found by that id and not by codes (a
+     * clone may have changed its codes). Empty in the global view, for a blank id and when the store has no such clone.
+     */
+    default Optional<PimEntry> findCloneOf(String sourcePimId) {
+        return Optional.empty();
+    }
+
     Optional<PimEntry> findByGtinOrMpn(String gtin, String mpn);
 
     /**

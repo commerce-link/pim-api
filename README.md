@@ -42,11 +42,11 @@ See [provider-api README](../provider-api/README.md) for `name()`, `displayName(
 
 | Class                | Description                                                        |
 |----------------------|--------------------------------------------------------------------|
-| `PimEntry`           | Product record: `pimId`, identifiers, brand, name, category, approved |
+| `PimEntry`           | Product record: `pimId`, identifiers, brand, name, category, approved, `ownerStoreId` (null = global), `clonedFromPimId` (source of a store clone, else null) |
 | `PimIdentifier`      | Identifier value + type                                            |
 | `PimIdentifierType`  | `GTIN` or `MPN`                                                   |
 | `PimEntryRequest`    | Request to fetch a product: `ean`, `mfn`, `brand`, `priority`     |
-| `PIMEntryAddedEvent` | Event: entry added with `pimId`, `eans`, `mfnCodes`               |
+| `PIMEntryAddedEvent` | Event: entry added with `pimId`, `eans`, `mfnCodes`, `ownerStoreId`, `clonedFromPimId` (new clone only) |
 | `PIMEntryDeletedEvent` | Event: entry deleted with `pimId`                                |
 
 ## Usage
@@ -55,7 +55,7 @@ See [provider-api README](../provider-api/README.md) for `name()`, `displayName(
 <dependency>
     <groupId>pl.commercelink</groupId>
     <artifactId>pim-api</artifactId>
-    <version>0.1.0</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 

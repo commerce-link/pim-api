@@ -1,5 +1,7 @@
 package pl.commercelink.pim.api;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -14,8 +16,17 @@ public record PimEntry(
         Integer netWeightInGrams,
         Integer grossWeightInGrams,
         String categoryId,
-        String ownerStoreId
+        String ownerStoreId,
+        // pimId of the global entry this store entry was cloned from; null for every other entry
+        @JsonInclude(JsonInclude.Include.NON_NULL) String clonedFromPimId
 ) {
+
+    public PimEntry(String pimId, List<PimIdentifier> identifiers, String brand, String name,
+                    String category, String subcategory, boolean approved,
+                    Integer netWeightInGrams, Integer grossWeightInGrams, String categoryId, String ownerStoreId) {
+        this(pimId, identifiers, brand, name, category, subcategory, approved,
+                netWeightInGrams, grossWeightInGrams, categoryId, ownerStoreId, null);
+    }
 
     public PimEntry(String pimId, List<PimIdentifier> identifiers, String brand, String name,
                     String category, String subcategory, boolean approved,
