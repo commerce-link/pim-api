@@ -5,7 +5,7 @@
 
     <groupId>pl.commercelink</groupId>
     <artifactId>pim-api</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
     <packaging>jar</packaging>
 
     <name>pim-api</name>
@@ -40,6 +40,12 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>2.17.2</version>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>pl.commercelink</groupId>
             <artifactId>provider-api</artifactId>
