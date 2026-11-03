@@ -62,11 +62,33 @@ class PimEntryJsonTest {
     }
 
     @Test
+    void addedEventCarriesTheBrandOfItsEntry() throws Exception {
+        // given
+        PIMEntryAddedEvent event = new PIMEntryAddedEvent("p", "Logitech", List.of("1"), List.of("A1"), null, null);
+
+        // when
+        String out = json.writeValueAsString(event);
+
+        // then
+        assertThat(out).contains("\"brand\":\"Logitech\"");
+        assertThat(json.readValue(out, PIMEntryAddedEvent.class).brand()).isEqualTo("Logitech");
+    }
+
+    @Test
+    void addedEventOfAPimWithoutBrandReadsAsNull() throws Exception {
+        // when
+        PIMEntryAddedEvent event = json.readValue("{\"pimId\":\"p\",\"eans\":[\"1\"],\"mfnCodes\":[\"A1\"]}",
+                PIMEntryAddedEvent.class);
+
+        // then
+        assertThat(event.brand()).isNull();
+    }
+
+    @Test
     void addedEventWithoutClonedFromReadsAsNull() throws Exception {
         PIMEntryAddedEvent event = json.readValue(
                 "{\"pimId\":\"p\",\"eans\":[\"1\"],\"mfnCodes\":[],\"ownerStoreId\":\"s1\"}", PIMEntryAddedEvent.class);
         assertThat(event.ownerStoreId()).isEqualTo("s1");
         assertThat(event.clonedFromPimId()).isNull();
-        assertThat(new PIMEntryAddedEvent("p", List.of(), List.of(), "s1").clonedFromPimId()).isNull();
     }
 }

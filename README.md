@@ -60,7 +60,7 @@ See [provider-api README](../provider-api/README.md) for `name()`, `displayName(
 | `PimIdentifier`      | Identifier value + type                                            |
 | `PimIdentifierType`  | `GTIN` or `MPN`                                                   |
 | `PimEntryRequest`    | Request to fetch a product: `ean`, `mfn`, `brand`, `priority`     |
-| `PIMEntryAddedEvent` | Event: entry added with `pimId`, `eans`, `mfnCodes`, `ownerStoreId`, `clonedFromPimId` (new clone only) |
+| `PIMEntryAddedEvent` | Event: entry added with `pimId`, `brand` (null when the entry has none or the event comes from an older PIM), `eans`, `mfnCodes`, `ownerStoreId`, `clonedFromPimId` (new clone only) |
 | `PIMEntryDeletedEvent` | Event: entry deleted with `pimId`                                |
 
 ## Usage
@@ -69,7 +69,7 @@ See [provider-api README](../provider-api/README.md) for `name()`, `displayName(
 <dependency>
     <groupId>pl.commercelink</groupId>
     <artifactId>pim-api</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.1</version>
 </dependency>
 ```
 
