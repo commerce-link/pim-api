@@ -12,7 +12,9 @@ import java.util.function.UnaryOperator;
 /**
  * Immutable lookup structure over a PIM index snapshot. Global entries form one scope, each store's entries
  * another; a store's view searches its own scope first, by any identifier, then the global one (GTIN before MPN
- * within each scope). Within a scope a shared identifier resolves to the later entry. In a store's view a global
+ * within each scope). Within a scope a shared identifier resolves to the later entry, except in the lookups by MPN
+ * and brand, which choose among all entries under the MPN; there an own entry of another brand does not hide a
+ * global one. In a store's view a global
  * entry sharing any GTIN/MPN with the store's own entries is shadowed: lookups by that identifier resolve to the
  * own entry, {@code findAll()} leaves the global one out, and a composite lookup carrying its pimId resolves to
  * the shadowing entry. When several own entries shadow one global entry, the composite lookup takes the first one
@@ -20,6 +22,8 @@ import java.util.function.UnaryOperator;
  * {@code findByPimId} still returns a visible entry by its own id.
  */
 public final class PimEntryIndex {
+
+    private static final int SHORT_MPN_MAX_LENGTH = 6;
 
     private final UnaryOperator<String> gtinKey;
     private final UnaryOperator<String> mpnKey;
@@ -70,10 +74,24 @@ public final class PimEntryIndex {
         return key == null || key.isBlank() ? null : key;
     }
 
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private static boolean sameBrand(String brand, String other) {
+        return !isBlank(brand) && !isBlank(other) && brand.trim().equalsIgnoreCase(other.trim());
+    }
+
+    private static boolean isLong(String mpnKey) {
+        return mpnKey.length() > SHORT_MPN_MAX_LENGTH;
+    }
+
     private final class Scope {
         private final List<PimEntry> entries = new ArrayList<>();
         private final Map<String, PimEntry> byGtin = new HashMap<>();
         private final Map<String, PimEntry> byMpn = new HashMap<>();
+        // only MPNs held by more than one entry, so that a unique code costs no list
+        private final Map<String, List<PimEntry>> bySharedMpn = new HashMap<>();
         private final Map<String, PimEntry> byClonedFrom = new HashMap<>();
 
         void add(PimEntry entry) {
@@ -93,8 +111,50 @@ public final class PimEntryIndex {
                 if (key == null) {
                     continue;
                 }
-                (gtin ? byGtin : byMpn).put(key, entry);
+                if (gtin) {
+                    byGtin.put(key, entry);
+                } else {
+                    addMpn(key, entry);
+                }
             }
+        }
+
+        private void addMpn(String key, PimEntry entry) {
+            PimEntry previous = byMpn.put(key, entry);
+            if (previous != null && previous != entry) {
+                bySharedMpn.computeIfAbsent(key, k -> new ArrayList<>(List.of(previous))).add(entry);
+            }
+        }
+
+        PimEntry findByGtinOrMpnAndBrand(String gtin, String mpn, String brand) {
+            PimEntry byCode = gtin == null ? null : byGtin.get(gtin);
+            return byCode != null ? byCode : findByMpnAndBrand(mpn, brand);
+        }
+
+        PimEntry findByMpnAndBrand(String mpn, String brand) {
+            if (mpn == null) {
+                return null;
+            }
+            List<PimEntry> shared = bySharedMpn.get(mpn);
+            if (shared == null) {
+                PimEntry only = byMpn.get(mpn);
+                return only != null && (sameBrand(brand, only.brand()) || withoutBrandMatch(mpn, brand, only)) ? only : null;
+            }
+            PimEntry withoutBrand = null;
+            for (int i = shared.size() - 1; i >= 0; i--) {
+                PimEntry candidate = shared.get(i);
+                if (sameBrand(brand, candidate.brand())) {
+                    return candidate;
+                }
+                if (withoutBrand == null && withoutBrandMatch(mpn, brand, candidate)) {
+                    withoutBrand = candidate;
+                }
+            }
+            return withoutBrand;
+        }
+
+        private boolean withoutBrandMatch(String mpn, String brand, PimEntry entry) {
+            return (isBlank(brand) || isBlank(entry.brand())) && isLong(mpn);
         }
     }
 
@@ -222,11 +282,13 @@ public final class PimEntryIndex {
         }
 
         @Override
+        @Deprecated(since = "0.5.0", forRemoval = true)
         public Optional<PimEntry> findByMpn(String mpn) {
             return find(key(mpnKey, mpn), false);
         }
 
         @Override
+        @Deprecated(since = "0.5.0", forRemoval = true)
         public Optional<PimEntry> findByGtinOrMpn(String gtin, String mpn) {
             // own entries by either code first, then global ones: the order of the composite lookup and of findAll
             List<String> gtins = Collections.singletonList(gtin);
@@ -238,6 +300,31 @@ public final class PimEntryIndex {
                 }
             }
             return firstHit(global, gtins, mpns);
+        }
+
+        @Override
+        public Optional<PimEntry> findByMpnAndBrand(String mpn, String brand) {
+            String key = key(mpnKey, mpn);
+            if (own != null) {
+                PimEntry hit = own.findByMpnAndBrand(key, brand);
+                if (hit != null) {
+                    return Optional.of(hit);
+                }
+            }
+            return Optional.ofNullable(global.findByMpnAndBrand(key, brand));
+        }
+
+        @Override
+        public Optional<PimEntry> findByGtinOrMpnAndBrand(String gtin, String mpn, String brand) {
+            String gtinValue = key(gtinKey, gtin);
+            String mpnValue = key(mpnKey, mpn);
+            if (own != null) {
+                PimEntry hit = own.findByGtinOrMpnAndBrand(gtinValue, mpnValue, brand);
+                if (hit != null) {
+                    return Optional.of(hit);
+                }
+            }
+            return Optional.ofNullable(global.findByGtinOrMpnAndBrand(gtinValue, mpnValue, brand));
         }
 
         private Optional<PimEntry> find(String key, boolean gtin) {

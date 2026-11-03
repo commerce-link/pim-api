@@ -18,6 +18,7 @@ public interface PimView {
 
     Optional<PimEntry> findByGtin(String gtin);
 
+    @Deprecated(since = "0.5.0", forRemoval = true)
     Optional<PimEntry> findByMpn(String mpn);
 
     /**
@@ -33,7 +34,12 @@ public interface PimView {
         return List.of();
     }
 
+    @Deprecated(since = "0.5.0", forRemoval = true)
     Optional<PimEntry> findByGtinOrMpn(String gtin, String mpn);
+
+    Optional<PimEntry> findByMpnAndBrand(String mpn, String brand);
+
+    Optional<PimEntry> findByGtinOrMpnAndBrand(String gtin, String mpn, String brand);
 
     /**
      * Resolves an inventory key: its pimId first, then its GTINs, then its MPNs. In a store's view a global pimId gives

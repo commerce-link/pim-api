@@ -26,9 +26,23 @@ Lookups within one scope. A view is a cheap snapshot of the current index; take 
 | `findAll()`                | All entries visible in this scope                         |
 | `findByPimId(id)`          | Lookup by PIM ID                                          |
 | `findByGtin(gtin)`         | Lookup by GTIN/EAN                                        |
-| `findByMpn(mpn)`           | Lookup by manufacturer part number                        |
-| `findByGtinOrMpn(gtin, mpn)` | Lookup by GTIN first, then MPN                         |
+| `findByMpn(mpn)`           | Lookup by manufacturer part number (deprecated, for removal) |
+| `findByGtinOrMpn(gtin, mpn)` | Lookup by GTIN first, then MPN (deprecated, for removal) |
+| `findByMpnAndBrand(mpn, brand)` | The entry under the MPN that is the product of this brand (rule below) |
+| `findByGtinOrMpnAndBrand(gtin, mpn, brand)` | Lookup by GTIN first, then `findByMpnAndBrand`      |
 | `findByPimIdOrGtinsOrMpns(...)` | Cascade lookup: PIM ID, then GTINs, then MPNs (default) |
+
+`findByMpn` and `findByGtinOrMpn` give the later entry under an MPN whatever its brand. They are deprecated since
+0.5.0 and will be removed once no client calls them; new code uses the lookups with a brand. A short MPN is shared by
+products of different brands, so the lookups with a brand choose among all entries under the MPN:
+
+- an entry of the same brand (ignoring case and surrounding spaces; both sides are expected to be unified by the
+  PIM's brand aliases, as `/PIM/Index` and `/PIM/Brands` give them);
+- when the given brand or the entry's brand is missing, an entry under an MPN longer than 6 characters (counted on
+  the normalized code);
+- an entry of the brand beats one without brand, and among equals the later entry wins;
+- in a store's view the store's own entries come first, and an own entry of another brand does not hide the global
+  entry of the brand.
 
 `PimEntryIndex` is a ready-made immutable implementation of both scopes for adapters (`global()`, `forStore(storeId)`).
 
@@ -55,7 +69,7 @@ See [provider-api README](../provider-api/README.md) for `name()`, `displayName(
 <dependency>
     <groupId>pl.commercelink</groupId>
     <artifactId>pim-api</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 
