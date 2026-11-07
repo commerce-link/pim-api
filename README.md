@@ -10,7 +10,7 @@ returned `PimView`, the way the app's `Inventory` hands out `InventoryView`s.
 | Method                     | Description                                               |
 |----------------------------|-----------------------------------------------------------|
 | `withGlobalData()`         | View of global entries only                               |
-| `withStoreData(storeId)`   | A store's view: its own entries first, then the global ones it does not shadow; a blank `storeId` is rejected |
+| `withStoreData(storeId)`   | A store's view: its own entries first, then the global ones it does not shadow (a global entry sharing a GTIN with an own entry); a blank `storeId` is rejected |
 | `submit(request)`          | Submit a product to be fetched by the PIM service         |
 | `refresh()`                | Refresh internal cache from the PIM service               |
 | `onEntryAdded(listener)`   | Register a listener for new PIM entries                   |
@@ -26,23 +26,23 @@ Lookups within one scope. A view is a cheap snapshot of the current index; take 
 | `findAll()`                | All entries visible in this scope                         |
 | `findByPimId(id)`          | Lookup by PIM ID                                          |
 | `findByGtin(gtin)`         | Lookup by GTIN/EAN                                        |
-| `findByMpn(mpn)`           | Lookup by manufacturer part number (deprecated, for removal) |
-| `findByGtinOrMpn(gtin, mpn)` | Lookup by GTIN first, then MPN (deprecated, for removal) |
 | `findByMpnAndBrand(mpn, brand)` | The entry under the MPN that is the product of this brand (rule below) |
 | `findByGtinOrMpnAndBrand(gtin, mpn, brand)` | Lookup by GTIN first, then `findByMpnAndBrand`      |
-| `findByPimIdOrGtinsOrMpns(...)` | Cascade lookup: PIM ID, then GTINs, then MPNs (default) |
+| `findByPimIdOrGtins(pimId, gtins)` | Cascade lookup: PIM ID, then GTINs (default)         |
 
-`findByMpn` and `findByGtinOrMpn` give the later entry under an MPN whatever its brand. They are deprecated since
-0.5.0 and will be removed once no client calls them; new code uses the lookups with a brand. A short MPN is shared by
-products of different brands, so the lookups with a brand choose among all entries under the MPN:
+An MPN alone never finds an entry: one code is shared by products of different brands, and within a brand by the
+sizes of one model. The lookups with a brand choose among all entries under the MPN:
 
-- an entry of the same brand (ignoring case and surrounding spaces; both sides are expected to be unified by the
-  PIM's brand aliases, as `/PIM/Index` and `/PIM/Brands` give them);
-- when the given brand or the entry's brand is missing, an entry under an MPN longer than 6 characters (counted on
-  the normalized code);
-- an entry of the brand beats one without brand, and among equals the later entry wins;
+- only an entry of the same brand (ignoring case and surrounding spaces; both sides are expected to be unified by the
+  PIM's brand aliases, as `/PIM/Index` and `/PIM/Brands` give them); a missing brand on either side finds nothing;
+- among entries of the brand the later entry wins;
 - in a store's view the store's own entries come first, and an own entry of another brand does not hide the global
   entry of the brand.
+
+In a store's view an own entry shadows a global entry only through a shared GTIN; a shared MPN never does.
+
+Since 0.6.0 `findByMpn`, `findByGtinOrMpn` and the MPN step of the cascade (`findByPimIdOrGtinsOrMpns`, now
+`findByPimIdOrGtins`) are gone, and an MPN no longer finds an entry without a brand, however long the code.
 
 `PimEntryIndex` is a ready-made immutable implementation of both scopes for adapters (`global()`, `forStore(storeId)`).
 
@@ -69,7 +69,7 @@ See [provider-api README](../provider-api/README.md) for `name()`, `displayName(
 <dependency>
     <groupId>pl.commercelink</groupId>
     <artifactId>pim-api</artifactId>
-    <version>0.5.1</version>
+    <version>0.6.0</version>
 </dependency>
 ```
 

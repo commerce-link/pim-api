@@ -6,9 +6,9 @@ import java.util.Optional;
 
 /**
  * Product lookups within one scope, taken from {@link PimCatalog#withGlobalData()} (global entries) or
- * {@link PimCatalog#withStoreData(String)} (a store's view). A store's view checks the store's own entries first, by
- * any of the given codes, and only then global ones; within a scope GTIN beats MPN. See {@link PimEntryIndex} for
- * shadowing.
+ * {@link PimCatalog#withStoreData(String)} (a store's view). A store's view checks the store's own entries first and
+ * only then global ones; within a scope GTIN beats MPN. An MPN finds an entry only together with its brand. See
+ * {@link PimEntryIndex} for shadowing.
  */
 public interface PimView {
 
@@ -17,9 +17,6 @@ public interface PimView {
     Optional<PimEntry> findByPimId(String pimId);
 
     Optional<PimEntry> findByGtin(String gtin);
-
-    @Deprecated(since = "0.5.0", forRemoval = true)
-    Optional<PimEntry> findByMpn(String mpn);
 
     /**
      * The store's own entry cloned from the global entry {@code sourcePimId}, found by that id and not by codes (a
@@ -34,21 +31,16 @@ public interface PimView {
         return List.of();
     }
 
-    @Deprecated(since = "0.5.0", forRemoval = true)
-    Optional<PimEntry> findByGtinOrMpn(String gtin, String mpn);
-
     Optional<PimEntry> findByMpnAndBrand(String mpn, String brand);
 
     Optional<PimEntry> findByGtinOrMpnAndBrand(String gtin, String mpn, String brand);
 
     /**
-     * Resolves an inventory key: its pimId first, then its GTINs, then its MPNs. In a store's view a global pimId gives
-     * way only to the store's own entry that shadows that very global entry (see {@link PimEntryIndex}); an own entry
-     * that matches only some other code of the key does not take it over. For a key with mixed codes (the GTIN of a
-     * global entry and the MPN of an unrelated own entry) the result can therefore differ from
-     * {@link #findByGtinOrMpn}, which has no pimId and returns the own entry.
+     * Resolves an inventory key: its pimId first, then its GTINs. In a store's view a global pimId gives way only to
+     * the store's own entry that shadows that very global entry (see {@link PimEntryIndex}); an own entry that matches
+     * only some other GTIN of the key does not take it over.
      */
-    default Optional<PimEntry> findByPimIdOrGtinsOrMpns(String pimId, Collection<String> gtins, Collection<String> mpns) {
+    default Optional<PimEntry> findByPimIdOrGtins(String pimId, Collection<String> gtins) {
         if (pimId != null && !pimId.isBlank()) {
             Optional<PimEntry> result = findByPimId(pimId);
             if (result.isPresent()) {
@@ -57,12 +49,6 @@ public interface PimView {
         }
         for (String gtin : gtins == null ? List.<String>of() : gtins) {
             Optional<PimEntry> result = findByGtin(gtin);
-            if (result.isPresent()) {
-                return result;
-            }
-        }
-        for (String mpn : mpns == null ? List.<String>of() : mpns) {
-            Optional<PimEntry> result = findByMpn(mpn);
             if (result.isPresent()) {
                 return result;
             }

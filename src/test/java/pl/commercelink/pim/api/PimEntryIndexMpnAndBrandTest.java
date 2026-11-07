@@ -49,39 +49,43 @@ class PimEntryIndexMpnAndBrandTest {
     }
 
     @Test
-    void missingBrandFindsAnEntryOnlyUnderALongCode() {
+    void missingBrandFindsNoEntryEvenUnderALongCode() {
         // given
         PimEntry shortCoded = entry("g1", "5900000000001", SHORT_CODE, "Trust", null);
         PimEntry longCoded = entry("g2", "5900000000002", LONG_CODE, "Western Digital", null);
         PimView global = index(shortCoded, longCoded).global();
 
         // when / then
-        assertThat(global.findByMpnAndBrand(LONG_CODE, null)).contains(longCoded);
+        assertThat(global.findByMpnAndBrand(LONG_CODE, null)).isEmpty();
+        assertThat(global.findByMpnAndBrand(LONG_CODE, " ")).isEmpty();
         assertThat(global.findByMpnAndBrand(SHORT_CODE, null)).isEmpty();
-        assertThat(global.findByMpnAndBrand(SHORT_CODE, " ")).isEmpty();
+        assertThat(global.findByGtinOrMpnAndBrand(null, LONG_CODE, null)).isEmpty();
     }
 
     @Test
-    void entryWithoutBrandIsFoundOnlyUnderALongCode() {
+    void entryWithoutBrandIsNeverFoundByCode() {
         // given
         PimEntry shortCoded = entry("g1", "5900000000001", SHORT_CODE, null, null);
         PimEntry longCoded = entry("g2", "5900000000002", LONG_CODE, " ", null);
         PimView global = index(shortCoded, longCoded).global();
 
         // when / then
-        assertThat(global.findByMpnAndBrand(LONG_CODE, "Western Digital")).contains(longCoded);
+        assertThat(global.findByMpnAndBrand(LONG_CODE, "Western Digital")).isEmpty();
         assertThat(global.findByMpnAndBrand(SHORT_CODE, "Trust")).isEmpty();
+        assertThat(global.findByGtinOrMpnAndBrand("5900000000009", LONG_CODE, "Western Digital")).isEmpty();
     }
 
     @Test
-    void entryOfTheGivenBrandBeatsALaterEntryWithoutBrand() {
+    void entryWithoutBrandUnderASharedCodeIsNotFoundForAnyBrand() {
         // given
         PimEntry westernDigital = entry("g1", "5900000000001", LONG_CODE, "Western Digital", null);
         PimEntry withoutBrand = entry("g2", "5900000000002", LONG_CODE, null, null);
+        PimView global = index(westernDigital, withoutBrand).global();
 
         // when / then
-        assertThat(index(westernDigital, withoutBrand).global().findByMpnAndBrand(LONG_CODE, "Western Digital"))
-                .contains(westernDigital);
+        assertThat(global.findByMpnAndBrand(LONG_CODE, "Western Digital")).contains(westernDigital);
+        assertThat(global.findByMpnAndBrand(LONG_CODE, "Seagate")).isEmpty();
+        assertThat(global.findByMpnAndBrand(LONG_CODE, null)).isEmpty();
     }
 
     @Test
@@ -96,14 +100,13 @@ class PimEntryIndexMpnAndBrandTest {
     }
 
     @Test
-    void codeLengthIsCountedOnTheNormalizedCode() {
+    void codeIsComparedInItsNormalizedForm() {
         // given
         PimEntry entry = entry("g1", "5900000000001", "12 345 6", "Trust", null);
         PimView global = new PimEntryIndex(List.of(entry), TRIM, WITHOUT_SPACES).global();
 
         // when / then
-        assertThat(global.findByMpnAndBrand(" 12 345 6 ", null)).isEmpty();
-        assertThat(global.findByMpnAndBrand(" 12 345 6 ", "Trust")).contains(entry);
+        assertThat(global.findByMpnAndBrand(" 1234 56 ", "Trust")).contains(entry);
     }
 
     @Test
@@ -134,18 +137,6 @@ class PimEntryIndexMpnAndBrandTest {
 
         // when / then
         assertThat(index(global, own).forStore("s1").findByMpnAndBrand(SHORT_CODE, "Trust")).contains(global);
-    }
-
-    @Test
-    void lookupsWithoutBrandStillGiveTheLaterEntryUnderASharedCode() {
-        // given
-        PimEntry trust = entry("g1", "5900000000001", SHORT_CODE, "Trust", null);
-        PimEntry genesis = entry("g2", "5900000000002", SHORT_CODE, "Genesis", null);
-        PimView global = index(trust, genesis).global();
-
-        // when / then
-        assertThat(global.findByMpn(SHORT_CODE)).contains(genesis);
-        assertThat(global.findByGtinOrMpn(null, SHORT_CODE)).contains(genesis);
     }
 
     @Test

@@ -36,7 +36,6 @@ class PimEntryIndexTest {
     @Test
     void storeLookupPrefersItsOwnEntryOverTheGlobalOne() {
         assertThat(index.forStore("s1").findByGtin("590")).contains(ownedByS1);
-        assertThat(index.forStore("s1").findByMpn("M-1")).contains(ownedByS1);
         assertThat(index.forStore("s1").findByGtin("591")).contains(onlyInS1);
     }
 
@@ -64,10 +63,10 @@ class PimEntryIndexTest {
 
     @Test
     void blankOrNullKeysFindNothing() {
-        assertThat(index.forStore("s1").findByGtinOrMpn(null, null)).isEmpty();
+        assertThat(index.forStore("s1").findByGtinOrMpnAndBrand(null, null, "b")).isEmpty();
         assertThat(index.global().findByGtin(" ")).isEmpty();
         assertThat(index.global().findByPimId(null)).isEmpty();
-        assertThat(index.forStore("s1").findByGtinOrMpn(null, "M-2")).contains(onlyInS1);
+        assertThat(index.forStore("s1").findByGtinOrMpnAndBrand(null, "M-2", "b")).contains(onlyInS1);
     }
 
     @Test
@@ -82,7 +81,7 @@ class PimEntryIndexTest {
     void keysAreNormalizedOnBuildAndOnLookup() {
         PimEntryIndex upper = new PimEntryIndex(List.of(entry("u", "700", "abc", null)),
                 TRIM, v -> v == null ? null : v.trim().toUpperCase());
-        assertThat(upper.global().findByMpn(" abc ")).isPresent();
+        assertThat(upper.global().findByMpnAndBrand(" abc ", "b")).isPresent();
     }
 
     @Test
@@ -102,24 +101,20 @@ class PimEntryIndexTest {
     }
 
     @Test
-    void globalEntrySharingOnlyAnMpnWithAStoreEntryIsShadowedInThatStore() {
+    void globalEntrySharingOnlyAnMpnWithAStoreEntryStaysVisibleInThatStore() {
         PimEntry ownMpnOnly = entry("s1-9", "999", " M-1 ", "s1");
         PimEntryIndex idx = new PimEntryIndex(List.of(global, ownMpnOnly), TRIM, TRIM);
 
-        assertThat(idx.forStore("s1").findAll()).containsExactly(ownMpnOnly);
+        assertThat(idx.forStore("s1").findAll()).containsExactly(ownMpnOnly, global);
     }
 
     @Test
-    void ownMpnBeatsGlobalGtinInGtinOrMpnLookupLikeInTheCompositeLookup() {
-        PimEntry ownMpn = entry("s1-7", "777", "M-1", "s1");
-        PimEntryIndex idx = new PimEntryIndex(List.of(global, ownMpn), TRIM, TRIM);
-        PimView s1 = idx.forStore("s1");
+    void ownEntrySharingOnlyAnMpnDoesNotTakeOverTheGlobalPimIdOfAKey() {
+        // the same code under another product (another brand, another size) must not turn the key into the store's entry
+        PimEntry ownMpnOnly = entry("s1-7", "777", "M-1", "s1");
+        PimView s1 = new PimEntryIndex(List.of(global, ownMpnOnly), TRIM, TRIM).forStore("s1");
 
-        assertThat(s1.findByGtinOrMpn("590", "M-1")).contains(ownMpn);
-        assertThat(s1.findByPimIdOrGtinsOrMpns(null, List.of("590"), List.of("M-1"))).contains(ownMpn);
-        assertThat(s1.findAll()).containsExactly(ownMpn);
-        assertThat(idx.forStore("s2").findByGtinOrMpn("590", "M-1")).contains(global);
-        assertThat(idx.global().findByGtinOrMpn("590", "M-1")).contains(global);
+        assertThat(s1.findByPimIdOrGtins("g1", List.of("590"))).contains(global);
     }
 
     @Test
@@ -128,34 +123,33 @@ class PimEntryIndexTest {
         PimEntry byMpn = entry("g6", "600", "M-60", null);
         PimEntryIndex idx = new PimEntryIndex(List.of(byGtin, byMpn), TRIM, TRIM);
 
-        assertThat(idx.forStore("s1").findByGtinOrMpn("500", "M-60")).contains(byGtin);
-        assertThat(idx.global().findByGtinOrMpn("500", "M-60")).contains(byGtin);
+        assertThat(idx.forStore("s1").findByGtinOrMpnAndBrand("500", "M-60", "b")).contains(byGtin);
+        assertThat(idx.global().findByGtinOrMpnAndBrand("500", "M-60", "b")).contains(byGtin);
     }
 
     @Test
     void globalPimIdOfAKeyYieldsOnlyToTheOwnEntryShadowingThatEntry() {
-        // two global groups; the store entry shares the first group's GTIN and, by bad feed data, a code of the
+        // two global groups; the store entry shares the first group's GTIN and, by bad feed data, another GTIN of the
         // second key: only the first group may resolve to the store entry, or one pimId would stand for two products
         PimEntry first = entry("g7", "701", "M-71", null);
         PimEntry second = entry("g8", "702", "M-72", null);
-        PimEntry own = entry("s1-8", "701", "OWN-8", "s1");
+        PimEntry own = new PimEntry("s1-8", List.of(new PimIdentifier("701", PimIdentifierType.GTIN),
+                new PimIdentifier("703", PimIdentifierType.GTIN)), "b", "n", "c", "s", true, null, null, null, "s1");
         PimView s1 = new PimEntryIndex(List.of(first, second, own), TRIM, TRIM).forStore("s1");
 
-        assertThat(s1.findByPimIdOrGtinsOrMpns("g7", List.of("701"), List.of("M-71"))).contains(own);
-        assertThat(s1.findByPimIdOrGtinsOrMpns("g8", List.of("702"), List.of("OWN-8"))).contains(second);
-        assertThat(s1.findByPimIdOrGtinsOrMpns(null, List.of("702"), List.of("OWN-8"))).contains(own);
+        assertThat(s1.findByPimIdOrGtins("g7", List.of("701"))).contains(own);
+        assertThat(s1.findByPimIdOrGtins("g8", List.of("702", "703"))).contains(second);
+        assertThat(s1.findByPimIdOrGtins(null, List.of("702", "703"))).contains(own);
     }
 
     @Test
     void compositeLookupPrefersOwnPimIdEvenWhenGtinsHitElsewhere() {
-        assertThat(index.forStore("s1").findByPimIdOrGtinsOrMpns("s1-2", List.of("590"), List.of()))
-                .contains(onlyInS1);
+        assertThat(index.forStore("s1").findByPimIdOrGtins("s1-2", List.of("590"))).contains(onlyInS1);
     }
 
     @Test
     void compositeLookupPrefersOwnIdentifierOverGlobalPimId() {
-        assertThat(index.forStore("s1").findByPimIdOrGtinsOrMpns("g1", List.of("590"), List.of()))
-                .contains(ownedByS1);
+        assertThat(index.forStore("s1").findByPimIdOrGtins("g1", List.of("590"))).contains(ownedByS1);
     }
 
     @Test
@@ -163,38 +157,33 @@ class PimEntryIndexTest {
         PimEntry globalOnly = entry("g3", "300", "M-30", null);
         PimEntryIndex idx = new PimEntryIndex(List.of(globalOnly, global, onlyInS1), TRIM, TRIM);
 
-        assertThat(idx.forStore("s1").findByPimIdOrGtinsOrMpns(null, List.of("300", "591"), List.of()))
-                .contains(onlyInS1);
-        assertThat(idx.forStore("s1").findByPimIdOrGtinsOrMpns(null, List.of("300"), List.of("M-2")))
-                .contains(onlyInS1);
+        assertThat(idx.forStore("s1").findByPimIdOrGtins(null, List.of("300", "591"))).contains(onlyInS1);
     }
 
     @Test
-    void compositeLookupFallsBackToGlobalPimIdThenGlobalGtinsThenGlobalMpns() {
+    void compositeLookupFallsBackToGlobalPimIdThenGlobalGtins() {
         PimEntry globalOnly = entry("g3", "300", "M-30", null);
         PimEntryIndex idx = new PimEntryIndex(List.of(globalOnly, global, onlyInS1), TRIM, TRIM);
         PimView s1 = idx.forStore("s1");
 
-        assertThat(s1.findByPimIdOrGtinsOrMpns("g1", List.of("300"), List.of())).contains(global);
-        assertThat(s1.findByPimIdOrGtinsOrMpns("missing", List.of("300"), List.of("M-1"))).contains(globalOnly);
-        assertThat(s1.findByPimIdOrGtinsOrMpns(null, List.of("nope"), List.of("M-30"))).contains(globalOnly);
-        assertThat(s1.findByPimIdOrGtinsOrMpns("s2-1", List.of(), List.of())).isEmpty();
+        assertThat(s1.findByPimIdOrGtins("g1", List.of("300"))).contains(global);
+        assertThat(s1.findByPimIdOrGtins("missing", List.of("300"))).contains(globalOnly);
+        assertThat(s1.findByPimIdOrGtins("s2-1", List.of())).isEmpty();
     }
 
     @Test
     void compositeLookupToleratesNullAndBlankArguments() {
         PimView s1 = index.forStore("s1");
-        assertThat(s1.findByPimIdOrGtinsOrMpns(null, null, null)).isEmpty();
-        assertThat(s1.findByPimIdOrGtinsOrMpns(" ", Arrays.asList(null, " ", "591"), Arrays.asList((String) null)))
-                .contains(onlyInS1);
-        assertThat(index.global().findByPimIdOrGtinsOrMpns(null, null, Arrays.asList(null, "M-1"))).contains(global);
+        assertThat(s1.findByPimIdOrGtins(null, null)).isEmpty();
+        assertThat(s1.findByPimIdOrGtins(" ", Arrays.asList(null, " ", "591"))).contains(onlyInS1);
+        assertThat(index.global().findByPimIdOrGtins(null, Arrays.asList(null, "590"))).contains(global);
     }
 
     @Test
     void globalViewKeepsPimIdFirstInCompositeLookup() {
         PimEntry other = entry("g4", "400", "M-40", null);
         PimEntryIndex idx = new PimEntryIndex(List.of(global, other), TRIM, TRIM);
-        assertThat(idx.global().findByPimIdOrGtinsOrMpns("g4", List.of("590"), List.of())).contains(other);
+        assertThat(idx.global().findByPimIdOrGtins("g4", List.of("590"))).contains(other);
     }
 
     @Test
@@ -212,7 +201,7 @@ class PimEntryIndexTest {
 
         assertThat(idx.size()).isEqualTo(3);
         assertThat(idx.forStore("s1").findByGtin("124")).contains(odd);
-        assertThat(idx.forStore("s1").findByMpn("123")).isEmpty();
+        assertThat(idx.forStore("s1").findByMpnAndBrand("123", "b")).isEmpty();
         assertThat(idx.forStore("s1").findAll()).containsExactly(odd, global, noIds);
         assertThat(odd.gtins()).containsExactly("124");
         assertThat(noIds.gtins()).isEmpty();
