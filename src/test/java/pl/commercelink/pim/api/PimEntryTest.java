@@ -1,5 +1,7 @@
 package pl.commercelink.pim.api;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -7,6 +9,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PimEntryTest {
+
+    private final ObjectMapper json = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Test
     void categoryIsAPlainStringExposedByAccessor() {
@@ -139,5 +144,31 @@ class PimEntryTest {
         PimEntry clone = new PimEntry("p2", List.of(), "b", "n", "c", "s", true, null, null, "cid", "s1", "p1");
         assertThat(clone.clonedFromPimId()).isEqualTo("p1");
         assertThat(clone.global()).isFalse();
+    }
+
+    @Test
+    void twelveArgumentConstructorLeavesEanOnlyMatchingOff() {
+        PimEntry entry = new PimEntry("p2", List.of(), "b", "n", "c", "s", true, null, null, "cid", "s1", "p1");
+        assertThat(entry.eanOnlyMatching()).isFalse();
+    }
+
+    @Test
+    void readsEanOnlyMatchingFromJson() throws Exception {
+        PimEntry entry = json.readValue("{\"pimId\":\"p1\",\"eanOnlyMatching\":true}", PimEntry.class);
+        assertThat(entry.eanOnlyMatching()).isTrue();
+    }
+
+    @Test
+    void missingFieldInJsonMeansOff() throws Exception {
+        PimEntry entry = json.readValue("{\"pimId\":\"p1\"}", PimEntry.class);
+        assertThat(entry.eanOnlyMatching()).isFalse();
+    }
+
+    @Test
+    void doesNotWriteTheFieldWhenOff() throws Exception {
+        PimEntry off = new PimEntry("p", List.of(), "b", "n", "c", "s", true, null, null, null, null, null, false);
+        PimEntry on = new PimEntry("p", List.of(), "b", "n", "c", "s", true, null, null, null, null, null, true);
+        assertThat(json.writeValueAsString(off)).doesNotContain("eanOnlyMatching");
+        assertThat(json.writeValueAsString(on)).contains("\"eanOnlyMatching\":true");
     }
 }

@@ -18,8 +18,18 @@ public record PimEntry(
         String categoryId,
         String ownerStoreId,
         // pimId of the global entry this store entry was cloned from; null for every other entry
-        @JsonInclude(JsonInclude.Include.NON_NULL) String clonedFromPimId
+        @JsonInclude(JsonInclude.Include.NON_NULL) String clonedFromPimId,
+        // operator-set: offers of this product are joined only by EAN, never by manufacturer code
+        @JsonInclude(JsonInclude.Include.NON_DEFAULT) boolean eanOnlyMatching
 ) {
+
+    public PimEntry(String pimId, List<PimIdentifier> identifiers, String brand, String name,
+                    String category, String subcategory, boolean approved,
+                    Integer netWeightInGrams, Integer grossWeightInGrams, String categoryId, String ownerStoreId,
+                    String clonedFromPimId) {
+        this(pimId, identifiers, brand, name, category, subcategory, approved,
+                netWeightInGrams, grossWeightInGrams, categoryId, ownerStoreId, clonedFromPimId, false);
+    }
 
     public PimEntry(String pimId, List<PimIdentifier> identifiers, String brand, String name,
                     String category, String subcategory, boolean approved,
